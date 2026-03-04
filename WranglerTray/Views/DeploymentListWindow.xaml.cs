@@ -16,6 +16,8 @@ public partial class DeploymentListWindow : Window
     protected override void OnDeactivated(EventArgs e)
     {
         base.OnDeactivated(e);
+        if (DataContext is DeploymentListViewModel vm && vm.IsPinned)
+            return;
         Hide();
     }
 

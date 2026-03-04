@@ -20,6 +20,9 @@ public partial class DeploymentListViewModel : ObservableObject
     private ObservableCollection<string> _projectNames = [];
 
     [ObservableProperty]
+    private bool _isPinned;
+
+    [ObservableProperty]
     private string _selectedProject = "All";
 
     [ObservableProperty]

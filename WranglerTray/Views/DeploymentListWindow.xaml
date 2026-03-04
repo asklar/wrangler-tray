@@ -24,6 +24,29 @@
             <TextBlock Text="☁️ Deployments" FontSize="18" FontWeight="SemiBold" 
                        Foreground="#cdd6f4" DockPanel.Dock="Left"/>
 
+            <!-- Pin toggle -->
+            <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding IsPinned}"
+                          Background="Transparent" BorderThickness="0"
+                          FontSize="14" Cursor="Hand" Padding="6,2"
+                          HorizontalAlignment="Right" Margin="4,0,0,0"
+                          ToolTip="Pin window (keep open)">
+                <ToggleButton.Template>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <TextBlock x:Name="PinIcon" Text="📌" Opacity="0.4" FontSize="14"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="PinIcon" Property="Opacity" Value="1.0"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="PinIcon" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </ToggleButton.Template>
+            </ToggleButton>
+
             <!-- Refresh button: hidden while loading -->
             <Button Content="⟳" Command="{Binding RefreshCommand}" 
                     DockPanel.Dock="Right" HorizontalAlignment="Right"
@@ -42,15 +65,10 @@
                 </Button.Style>
             </Button>
 
-            <!-- Spinning donut: shown while loading -->
-            <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right"
-                       Text="⏳" FontSize="16" Padding="6,2"
-                       Foreground="#89b4fa" RenderTransformOrigin="0.5,0.5">
-                <TextBlock.RenderTransform>
-                    <RotateTransform x:Name="SpinTransform"/>
-                </TextBlock.RenderTransform>
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
+            <!-- Spinning indicator: shown while loading -->
+            <Border DockPanel.Dock="Right" HorizontalAlignment="Right" Padding="6,2">
+                <Border.Style>
+                    <Style TargetType="Border">
                         <Setter Property="Visibility" Value="Collapsed"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsLoading}" Value="True">
@@ -58,18 +76,25 @@
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
-                </TextBlock.Style>
-                <TextBlock.Triggers>
-                    <EventTrigger RoutedEvent="Loaded">
-                        <BeginStoryboard>
-                            <Storyboard RepeatBehavior="Forever">
-                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
-                                                 From="0" To="360" Duration="0:0:1"/>
-                            </Storyboard>
-                        </BeginStoryboard>
-                    </EventTrigger>
-                </TextBlock.Triggers>
-            </TextBlock>
+                </Border.Style>
+                <TextBlock Text="⏳" FontSize="16" Foreground="#89b4fa"
+                           RenderTransformOrigin="0.5,0.5"
+                           HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock.RenderTransform>
+                        <RotateTransform/>
+                    </TextBlock.RenderTransform>
+                    <TextBlock.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard>
+                                <Storyboard RepeatBehavior="Forever">
+                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                     From="0" To="360" Duration="0:0:1"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </TextBlock.Triggers>
+                </TextBlock>
+            </Border>
         </DockPanel>
 
         <!-- Project tabs -->
