@@ -2,7 +2,7 @@
 
 A Windows system tray app that monitors your Cloudflare Workers and Pages deployments and notifies you when they complete or fail.
 
-![.NET 8](https://img.shields.io/badge/.NET-8.0-blue)
+![.NET 10](https://img.shields.io/badge/.NET-10.0-blue)
 ![WPF](https://img.shields.io/badge/UI-WPF-purple)
 ![Cloudflare](https://img.shields.io/badge/Cloudflare-API-orange)
 
@@ -20,7 +20,7 @@ A Windows system tray app that monitors your Cloudflare Workers and Pages deploy
 ## Requirements
 
 - Windows 10 or later
-- .NET 8.0 Runtime
+- .NET 10.0 Runtime
 - (Optional) Node.js + wrangler CLI for browser-based login
 
 ## Getting Started
