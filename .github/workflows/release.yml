@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish (Native AOT)
+        run: |
+          dotnet publish WranglerTray/WranglerTray.csproj `
+            -c Release `
+            -r win-x64 `
+            /p:PublishAot=true `
+            /p:_SuppressWinFormsTrimError=true `
+            /p:_SuppressWPFTrimError=true `
+            -o publish
+
+      - name: Create zip
+        run: |
+          Remove-Item publish/*.pdb -ErrorAction SilentlyContinue
+          Compress-Archive -Path publish/* -DestinationPath WranglerTray-${{ github.ref_name }}-win-x64.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: WranglerTray-${{ github.ref_name }}-win-x64.zip
+          generate_release_notes: true

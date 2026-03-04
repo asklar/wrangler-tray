@@ -20,16 +20,19 @@ A Windows system tray app that monitors your Cloudflare Workers and Pages deploy
 ## Requirements
 
 - Windows 10 or later
-- .NET 10.0 Runtime
 - (Optional) Node.js + wrangler CLI for browser-based login
+
+## Installation
+
+1. Download the latest `WranglerTray-vX.X.X-win-x64.zip` from [Releases](https://github.com/asklar/wrangler-tray/releases)
+2. Extract the zip to a folder (e.g. `C:\Program Files\WranglerTray`)
+3. Run `WranglerTray.exe`
+
+The release is a native AOT-compiled binary — no .NET runtime installation required.
 
 ## Getting Started
 
-1. **Build and run:**
-   ```bash
-   cd WranglerTray
-   dotnet run
-   ```
+1. **Run `WranglerTray.exe`** — the app starts in the system tray
 
 2. **Right-click the tray icon** → Settings
 
@@ -55,6 +58,27 @@ WranglerTray/
 ├── Views/            — WPF windows (deployment list, settings)
 └── App.xaml.cs       — Entry point, tray icon setup, service wiring
 ```
+
+## Building from Source
+
+Requires [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+```bash
+cd WranglerTray
+dotnet run                # run in debug mode
+dotnet publish -c Release -r win-x64 /p:PublishAot=true  # native AOT build
+```
+
+## Releasing
+
+Push a version tag to trigger the GitHub Actions release pipeline:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This builds a native AOT binary, zips it, and publishes it as a GitHub Release.
 
 ## License
 
