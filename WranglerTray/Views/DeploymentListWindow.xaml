@@ -27,20 +27,22 @@
             <!-- Pin toggle -->
             <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding IsPinned}"
                           Background="Transparent" BorderThickness="0"
-                          FontSize="14" Cursor="Hand" Padding="6,2"
+                          Cursor="Hand" Padding="6,2"
+                          VerticalAlignment="Center"
                           HorizontalAlignment="Right" Margin="4,0,0,0"
                           ToolTip="Pin window (keep open)">
                 <ToggleButton.Template>
                     <ControlTemplate TargetType="ToggleButton">
                         <Border Background="Transparent" Padding="{TemplateBinding Padding}">
-                            <TextBlock x:Name="PinIcon" Text="📌" Opacity="0.4" FontSize="14"/>
+                            <TextBlock x:Name="PinIcon" Text="📍" FontSize="16"
+                                       Foreground="#6c7086" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="PinIcon" Property="Opacity" Value="1.0"/>
+                                <Setter TargetName="PinIcon" Property="Foreground" Value="#f9e2af"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="PinIcon" Property="Opacity" Value="0.8"/>
+                                <Setter TargetName="PinIcon" Property="Foreground" Value="#cdd6f4"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -50,6 +52,7 @@
             <!-- Refresh button: hidden while loading -->
             <Button Content="⟳" Command="{Binding RefreshCommand}" 
                     DockPanel.Dock="Right" HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
                     Background="Transparent" Foreground="#89b4fa" BorderThickness="0"
                     FontSize="18" Cursor="Hand" Padding="6,2"
                     ToolTip="Refresh now">
