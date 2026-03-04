@@ -171,9 +171,20 @@
         </ListBox>
 
         <!-- Footer -->
-        <TextBlock Grid.Row="2" Margin="0,8,0,0" Foreground="#6c7086" FontSize="11">
-            <Run Text="Last checked: "/>
-            <Run Text="{Binding LastCheckedText, Mode=OneWay}"/>
-        </TextBlock>
+        <DockPanel Grid.Row="2" Margin="0,8,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="⚙️" Command="{Binding OpenSettingsCommand}" 
+                        Background="Transparent" Foreground="#6c7086" BorderThickness="0"
+                        FontSize="14" Cursor="Hand" Padding="4,0" ToolTip="Settings"/>
+                <Button Content="✕" Command="{Binding ExitCommand}" 
+                        Background="Transparent" Foreground="#f38ba8" BorderThickness="0"
+                        FontSize="14" Cursor="Hand" Padding="4,0" ToolTip="Exit Wrangler Tray"
+                        Margin="4,0,0,0"/>
+            </StackPanel>
+            <TextBlock Foreground="#6c7086" FontSize="11" VerticalAlignment="Center">
+                <Run Text="Last checked: "/>
+                <Run Text="{Binding LastCheckedText, Mode=OneWay}"/>
+            </TextBlock>
+        </DockPanel>
     </Grid>
 </Window>

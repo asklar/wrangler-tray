@@ -115,6 +115,7 @@ public partial class App : Application
         if (_deploymentWindow == null || !_deploymentWindow.IsLoaded)
         {
             var vm = new DeploymentListViewModel(_monitorService, _authService);
+            vm.OpenSettingsRequested += (_, _) => ShowSettings();
             _deploymentWindow = new DeploymentListWindow(vm);
         }
 
@@ -144,18 +145,35 @@ public partial class App : Application
 
     private static Icon CreateDefaultIcon()
     {
-        // Create a simple 16x16 icon with a cloud shape
+        // Load embedded icon from build output directory
+        var exeDir = AppContext.BaseDirectory;
+        var icoPath = System.IO.Path.Combine(exeDir, "Assets", "tray-icon.ico");
+        if (System.IO.File.Exists(icoPath))
+            return new Icon(icoPath, 16, 16);
+
+        // Try WPF resource stream
+        try
+        {
+            var uri = new Uri("pack://application:,,,/Assets/tray-icon.ico");
+            var sri = Application.GetResourceStream(uri);
+            if (sri?.Stream != null)
+            {
+                using var stream = sri.Stream;
+                return new Icon(stream, 16, 16);
+            }
+        }
+        catch { }
+
+        // Fallback: bold orange circle
         var bmp = new Bitmap(16, 16);
         using (var g = Graphics.FromImage(bmp))
         {
             g.Clear(Color.Transparent);
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using var brush = new SolidBrush(Color.FromArgb(249, 115, 22)); // Orange/Cloudflare color
-            g.FillEllipse(brush, 1, 4, 14, 10);
-            g.FillEllipse(brush, 3, 1, 10, 10);
+            using var brush = new SolidBrush(Color.FromArgb(249, 115, 22));
+            g.FillEllipse(brush, 1, 1, 14, 14);
         }
-        var handle = bmp.GetHicon();
-        return Icon.FromHandle(handle);
+        return Icon.FromHandle(bmp.GetHicon());
     }
 
     private void ExitApp()

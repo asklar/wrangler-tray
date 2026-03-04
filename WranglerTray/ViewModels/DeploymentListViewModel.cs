@@ -69,4 +69,22 @@ public partial class DeploymentListViewModel : ObservableObject
     {
         await _monitorService.PollAsync();
     }
+
+    [RelayCommand]
+    private static void Exit()
+    {
+        System.Windows.Application.Current?.Shutdown();
+    }
+
+    /// <summary>
+    /// Raised when the user clicks the settings button.
+    /// The App class subscribes to this to open the settings window.
+    /// </summary>
+    public event EventHandler? OpenSettingsRequested;
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        OpenSettingsRequested?.Invoke(this, EventArgs.Empty);
+    }
 }
