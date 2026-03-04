@@ -63,6 +63,9 @@ public class DeploymentMonitorService : IDisposable
 
         try
         {
+            // Refresh token once (may do file I/O or subprocess), off UI thread
+            await Task.Run(() => _authService.RefreshTokenIfNeeded());
+
             var allDeployments = new List<Deployment>();
             var accountId = _settings.SelectedAccountId;
 

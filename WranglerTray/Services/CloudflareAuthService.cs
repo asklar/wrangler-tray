@@ -198,13 +198,20 @@ public class CloudflareAuthService
     /// </summary>
     public string? GetAccessToken()
     {
+        return _cachedToken;
+    }
+
+    /// <summary>
+    /// Refresh the cached token from disk if using wrangler login.
+    /// Call this once before a batch of API calls, not on every request.
+    /// </summary>
+    public void RefreshTokenIfNeeded()
+    {
         if (_authMode == AuthMode.WranglerLogin)
         {
-            // Re-read in case wrangler refreshed it
             var fresh = ReadWranglerToken();
             if (fresh != null) _cachedToken = fresh;
         }
-        return _cachedToken;
     }
 
     public void Logout()
