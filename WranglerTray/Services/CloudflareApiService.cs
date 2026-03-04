@@ -67,7 +67,7 @@ public class CloudflareApiService
     public async Task<List<CfPagesProject>> GetPagesProjectsAsync(string accountId)
     {
         SetAuth();
-        var response = await _httpClient.GetAsync($"accounts/{accountId}/pages/projects?per_page=25");
+        var response = await _httpClient.GetAsync($"accounts/{accountId}/pages/projects");
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
@@ -79,7 +79,7 @@ public class CloudflareApiService
     {
         SetAuth();
         var response = await _httpClient.GetAsync(
-            $"accounts/{accountId}/pages/projects/{projectName}/deployments?per_page=10");
+            $"accounts/{accountId}/pages/projects/{projectName}/deployments");
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();

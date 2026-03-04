@@ -90,7 +90,17 @@ public partial class SettingsViewModel : ObservableObject
         NotifyOnFailure = settings.NotifyOnFailure;
         NotifyOnNewDeployment = settings.NotifyOnNewDeployment;
 
-        CheckWranglerEnvironment();
+        // Check wrangler environment on background thread
+        _ = Task.Run(() =>
+        {
+            var env = CloudflareAuthService.CheckEnvironment();
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+            {
+                IsWranglerInstalled = env.IsWranglerInstalled;
+                IsNpmInstalled = env.IsNpmInstalled;
+                WranglerVersion = env.WranglerVersion;
+            });
+        });
 
         authService.AuthStateChanged += (_, _) =>
         {
@@ -109,14 +119,6 @@ public partial class SettingsViewModel : ObservableObject
             _ = LoadAccountsAsync();
     }
 
-    private void CheckWranglerEnvironment()
-    {
-        var env = CloudflareAuthService.CheckEnvironment();
-        IsWranglerInstalled = env.IsWranglerInstalled;
-        IsNpmInstalled = env.IsNpmInstalled;
-        WranglerVersion = env.WranglerVersion;
-    }
-
     [RelayCommand]
     private async Task InstallWranglerAsync()
     {
@@ -128,7 +130,10 @@ public partial class SettingsViewModel : ObservableObject
         if (success)
         {
             InstallStatusMessage = "✅ Wrangler installed successfully!";
-            CheckWranglerEnvironment();
+            var env = await Task.Run(() => CloudflareAuthService.CheckEnvironment());
+            IsWranglerInstalled = env.IsWranglerInstalled;
+            IsNpmInstalled = env.IsNpmInstalled;
+            WranglerVersion = env.WranglerVersion;
         }
         else
         {
