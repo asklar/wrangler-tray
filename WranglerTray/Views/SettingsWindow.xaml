@@ -1,0 +1,164 @@
+<Window x:Class="WranglerTray.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Wrangler Tray — Settings"
+        Width="460" Height="580"
+        WindowStyle="ToolWindow"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen"
+        Background="#1e1e2e">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#89b4fa"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,16,0,8"/>
+        </Style>
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#cdd6f4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,4,0,4"/>
+        </Style>
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Background" Value="#89b4fa"/>
+            <Setter Property="Foreground" Value="#1e1e2e"/>
+            <Setter Property="Padding" Value="16,6"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16">
+            <!-- Title -->
+            <TextBlock Text="⚙️ Settings" FontSize="20" FontWeight="Bold" Foreground="#cdd6f4" Margin="0,0,0,4"/>
+
+            <!-- Auth Status -->
+            <TextBlock Text="{Binding AuthStatusText}" Foreground="#a6adc8" FontSize="12" Margin="0,0,0,12"/>
+
+            <!-- Wrangler Environment -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="🔧 Wrangler CLI"/>
+
+            <StackPanel Visibility="{Binding IsWranglerInstalled, Converter={StaticResource BoolToVis}}">
+                <TextBlock Foreground="#a6e3a1" FontSize="12">
+                    <Run Text="✅ Wrangler installed:"/>
+                    <Run Text="{Binding WranglerVersion, Mode=OneWay}"/>
+                </TextBlock>
+            </StackPanel>
+
+            <!-- Wrangler not installed -->
+            <StackPanel>
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsWranglerInstalled}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+
+                <TextBlock Foreground="#f9e2af" FontSize="12" TextWrapping="Wrap"
+                           Text="⚠️ Wrangler is not installed. It's required for browser-based Cloudflare login."/>
+
+                <!-- Can install via npm -->
+                <StackPanel Visibility="{Binding IsNpmInstalled, Converter={StaticResource BoolToVis}}" Margin="0,8,0,0">
+                    <Button Content="📦 Install Wrangler (npm install -g wrangler)"
+                            Command="{Binding InstallWranglerCommand}" 
+                            Style="{StaticResource ActionButton}"
+                            IsEnabled="{Binding IsInstallingWrangler, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"
+                            HorizontalAlignment="Left"/>
+                    <TextBlock Text="{Binding InstallStatusMessage}" Foreground="#a6adc8" 
+                               FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- Neither npm nor wrangler -->
+                <StackPanel>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsWranglerInstalled}" Value="False"/>
+                                        <Condition Binding="{Binding IsNpmInstalled}" Value="False"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Foreground="#f38ba8" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Text="Node.js/npm is not installed. Install Node.js from https://nodejs.org to enable wrangler login, or use an API token below."/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Authentication -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="🔑 Authentication"/>
+
+            <!-- Wrangler Login option -->
+            <StackPanel Margin="0,0,0,8">
+                <Button Content="🌐 Login with Wrangler (opens browser)" 
+                        Command="{Binding LoginWithWranglerCommand}"
+                        Style="{StaticResource ActionButton}"
+                        IsEnabled="{Binding IsWranglerInstalled}"
+                        HorizontalAlignment="Left"/>
+            </StackPanel>
+
+            <!-- API Token option -->
+            <TextBlock Style="{StaticResource Label}" Text="— or paste an API token —"/>
+            <DockPanel Margin="0,0,0,4">
+                <Button Content="Save" Command="{Binding SaveApiTokenCommand}" 
+                        DockPanel.Dock="Right" Style="{StaticResource ActionButton}" Margin="8,0,0,0"/>
+                <TextBox Text="{Binding ApiTokenInput, UpdateSourceTrigger=PropertyChanged}"
+                         Background="#313244" Foreground="#cdd6f4" BorderBrush="#45475a"
+                         Padding="6,4" FontFamily="Consolas" FontSize="12"/>
+            </DockPanel>
+            <TextBlock Foreground="#6c7086" FontSize="10" TextWrapping="Wrap"
+                       Text="Create a token at dash.cloudflare.com/profile/api-tokens with 'Account:Workers Scripts:Read' and 'Account:Cloudflare Pages:Read' permissions."/>
+
+            <!-- Logout -->
+            <Button Content="Logout" Command="{Binding LogoutCommand}" 
+                    Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVis}}"
+                    HorizontalAlignment="Left" Margin="0,12,0,0"
+                    Background="#45475a" Foreground="#f38ba8" Padding="16,6"
+                    BorderThickness="0" Cursor="Hand"/>
+
+            <!-- Account Selection -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="🏢 Account"/>
+            <ComboBox ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedAccount}"
+                      DisplayMemberPath="Name"
+                      Background="#313244" Foreground="#cdd6f4" BorderBrush="#45475a" Padding="6,4"/>
+
+            <!-- Polling -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="⏱️ Polling"/>
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Style="{StaticResource Label}" Width="40" TextAlignment="Right">
+                    <Run Text="{Binding PollIntervalSeconds, Mode=OneWay}"/>
+                    <Run Text="s"/>
+                </TextBlock>
+                <Slider Minimum="15" Maximum="300" Value="{Binding PollIntervalSeconds}" 
+                        TickFrequency="15" IsSnapToTickEnabled="True"
+                        Foreground="#89b4fa"/>
+            </DockPanel>
+
+            <!-- Notifications -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="🔔 Notifications"/>
+            <CheckBox Content="Notify on successful deployments" IsChecked="{Binding NotifyOnSuccess}"
+                      Foreground="#cdd6f4" Margin="0,4"/>
+            <CheckBox Content="Notify on failed deployments" IsChecked="{Binding NotifyOnFailure}"
+                      Foreground="#cdd6f4" Margin="0,4"/>
+            <CheckBox Content="Notify on new deployments" IsChecked="{Binding NotifyOnNewDeployment}"
+                      Foreground="#cdd6f4" Margin="0,4"/>
+
+            <!-- Startup -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="🚀 Startup"/>
+            <CheckBox Content="Start with Windows" IsChecked="{Binding StartWithWindows}"
+                      Foreground="#cdd6f4" Margin="0,4"/>
+        </StackPanel>
+    </ScrollViewer>
+</Window>
