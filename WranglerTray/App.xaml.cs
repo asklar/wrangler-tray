@@ -185,7 +185,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _monitorService.Dispose();
+        _monitorService?.Dispose();
         _trayIcon?.Dispose();
         base.OnExit(e);
     }

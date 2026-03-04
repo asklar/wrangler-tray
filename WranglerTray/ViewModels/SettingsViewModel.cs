@@ -80,7 +80,10 @@ public partial class SettingsViewModel : ObservableObject
 
         // Load current state
         IsAuthenticated = authService.IsAuthenticated;
-        AuthMode = settings.AuthMode;
+        AuthMode = authService.AuthMode;
+        AuthStatusText = authService.IsAuthenticated
+            ? $"Logged in ({authService.AuthMode})"
+            : "Not logged in";
         PollIntervalSeconds = settings.PollIntervalSeconds;
         StartWithWindows = settings.StartWithWindows;
         NotifyOnSuccess = settings.NotifyOnSuccess;
@@ -100,6 +103,10 @@ public partial class SettingsViewModel : ObservableObject
                     : "Not logged in";
             });
         };
+
+        // Load accounts if already authenticated
+        if (authService.IsAuthenticated)
+            _ = LoadAccountsAsync();
     }
 
     private void CheckWranglerEnvironment()
