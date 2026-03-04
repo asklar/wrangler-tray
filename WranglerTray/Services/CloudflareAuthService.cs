@@ -44,21 +44,29 @@ public class CloudflareAuthService
     }
 
     /// <summary>
+    /// Create a ProcessStartInfo that runs a command through cmd.exe,
+    /// which is required on Windows for .cmd/.bat scripts like wrangler and npm.
+    /// </summary>
+    private static ProcessStartInfo CmdPsi(string command, string args, bool redirect = true)
+    {
+        return new ProcessStartInfo("cmd.exe", $"/c {command} {args}")
+        {
+            RedirectStandardOutput = redirect,
+            RedirectStandardError = redirect,
+            UseShellExecute = !redirect,
+            CreateNoWindow = true
+        };
+    }
+
+    /// <summary>
     /// Detect if wrangler CLI is available on PATH.
     /// </summary>
     public static bool IsWranglerAvailable()
     {
         try
         {
-            var psi = new ProcessStartInfo("wrangler", "--version")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            using var proc = Process.Start(psi);
-            proc?.WaitForExit(5000);
+            using var proc = Process.Start(CmdPsi("wrangler", "--version"));
+            proc?.WaitForExit(10000);
             return proc?.ExitCode == 0;
         }
         catch
@@ -74,15 +82,8 @@ public class CloudflareAuthService
     {
         try
         {
-            var psi = new ProcessStartInfo("npm", "--version")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            using var proc = Process.Start(psi);
-            proc?.WaitForExit(5000);
+            using var proc = Process.Start(CmdPsi("npm", "--version"));
+            proc?.WaitForExit(10000);
             return proc?.ExitCode == 0;
         }
         catch
@@ -98,17 +99,10 @@ public class CloudflareAuthService
     {
         try
         {
-            var psi = new ProcessStartInfo("wrangler", "--version")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            using var proc = Process.Start(psi);
+            using var proc = Process.Start(CmdPsi("wrangler", "--version"));
             if (proc == null) return null;
             var output = proc.StandardOutput.ReadToEnd();
-            proc.WaitForExit(5000);
+            proc.WaitForExit(10000);
             return proc.ExitCode == 0 ? output.Trim() : null;
         }
         catch
@@ -124,14 +118,7 @@ public class CloudflareAuthService
     {
         try
         {
-            var psi = new ProcessStartInfo("npm", "install -g wrangler")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            using var proc = Process.Start(psi);
+            using var proc = Process.Start(CmdPsi("npm", "install -g wrangler"));
             if (proc == null) return (false, "Failed to start npm process.");
 
             var stdout = await proc.StandardOutput.ReadToEndAsync();
@@ -169,7 +156,7 @@ public class CloudflareAuthService
     {
         try
         {
-            var psi = new ProcessStartInfo("wrangler", "login")
+            var psi = new ProcessStartInfo("cmd.exe", "/c wrangler login")
             {
                 UseShellExecute = true,
                 CreateNoWindow = false
