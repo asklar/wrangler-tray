@@ -34,15 +34,17 @@
                 <ToggleButton.Template>
                     <ControlTemplate TargetType="ToggleButton">
                         <Border Background="Transparent" Padding="{TemplateBinding Padding}">
-                            <TextBlock x:Name="PinIcon" Text="📍" FontSize="16"
-                                       Foreground="#6c7086" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="PinIcon" Text="📌" FontSize="16"
+                                       FontFamily="Segoe UI Emoji"
+                                       VerticalAlignment="Center"
+                                       Opacity="0.4"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="PinIcon" Property="Foreground" Value="#f9e2af"/>
+                                <Setter TargetName="PinIcon" Property="Opacity" Value="1.0"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="PinIcon" Property="Foreground" Value="#cdd6f4"/>
+                                <Setter TargetName="PinIcon" Property="Opacity" Value="0.7"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
