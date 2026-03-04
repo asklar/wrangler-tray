@@ -132,7 +132,19 @@
             <TextBlock Style="{StaticResource SectionHeader}" Text="🏢 Account"/>
             <ComboBox ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedAccount}"
                       DisplayMemberPath="Name"
-                      Background="#313244" Foreground="#cdd6f4" BorderBrush="#45475a" Padding="6,4"/>
+                      Background="#313244" Foreground="#cdd6f4" BorderBrush="#45475a" Padding="6,4">
+                <ComboBox.ItemContainerStyle>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Background" Value="#313244"/>
+                        <Setter Property="Foreground" Value="#cdd6f4"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter Property="Background" Value="#45475a"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ComboBox.ItemContainerStyle>
+            </ComboBox>
 
             <!-- Polling -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="⏱️ Polling"/>
