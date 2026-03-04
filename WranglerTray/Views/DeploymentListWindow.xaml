@@ -30,23 +30,57 @@
                     ToolTip="Refresh now"/>
         </DockPanel>
 
-        <!-- Not authenticated message -->
-        <TextBlock Grid.Row="1" 
-                   Text="Not logged in. Open Settings to connect your Cloudflare account."
-                   Foreground="#a6adc8" TextWrapping="Wrap" Margin="0,20"
-                   HorizontalAlignment="Center" VerticalAlignment="Top"
-                   Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
-
-        <!-- Loading indicator -->
-        <TextBlock Grid.Row="1" Text="Checking deployments..." 
-                   Foreground="#a6adc8" HorizontalAlignment="Center" VerticalAlignment="Top"
-                   Margin="0,20"
-                   Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
-
-        <!-- Error message -->
-        <TextBlock Grid.Row="1" Text="{Binding ErrorMessage}" 
-                   Foreground="#f38ba8" TextWrapping="Wrap" Margin="0,40,0,0"
-                   Visibility="{Binding ErrorMessage, Converter={StaticResource BoolToVis}}"/>
+        <!-- Status messages (mutually exclusive, all in Row 1) -->
+        <StackPanel Grid.Row="1" VerticalAlignment="Top" Margin="0,20"
+                    HorizontalAlignment="Center">
+            <TextBlock Text="Not logged in. Open Settings to connect your Cloudflare account."
+                       Foreground="#a6adc8" TextWrapping="Wrap" TextAlignment="Center">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsAuthenticated}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Text="Checking deployments..." 
+                       Foreground="#a6adc8" TextAlignment="Center">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsAuthenticated}" Value="True"/>
+                                    <Condition Binding="{Binding IsLoading}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Text="{Binding ErrorMessage}" 
+                       Foreground="#f38ba8" TextWrapping="Wrap" TextAlignment="Center">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsAuthenticated}" Value="True"/>
+                                    <Condition Binding="{Binding IsLoading}" Value="False"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </StackPanel>
 
         <!-- Deployment list -->
         <ListBox Grid.Row="1" ItemsSource="{Binding Deployments}"
