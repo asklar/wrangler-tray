@@ -228,6 +228,26 @@ public class CloudflareAuthService
             var toml = File.ReadAllText(WranglerConfigPath);
             var model = Toml.ToModel(toml);
 
+            // Check expiration
+            if (model.TryGetValue("expiration_time", out var expiryVal))
+            {
+                if (DateTime.TryParse(expiryVal?.ToString(), null,
+                        System.Globalization.DateTimeStyles.RoundtripKind, out var expiry))
+                {
+                    if (expiry < DateTime.UtcNow)
+                    {
+                        // Token expired — try to refresh by running a trivial wrangler command
+                        // which forces wrangler to refresh its token internally
+                        if (!TryRefreshWranglerToken())
+                            return null;
+
+                        // Re-read the config after refresh
+                        toml = File.ReadAllText(WranglerConfigPath);
+                        model = Toml.ToModel(toml);
+                    }
+                }
+            }
+
             if (model.TryGetValue("oauth_token", out var token))
                 return token?.ToString();
 
@@ -236,6 +256,27 @@ public class CloudflareAuthService
         catch
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Run a trivial wrangler command to force token refresh.
+    /// Wrangler auto-refreshes its OAuth token when it detects expiry.
+    /// </summary>
+    private static bool TryRefreshWranglerToken()
+    {
+        try
+        {
+            using var proc = Process.Start(CmdPsi("wrangler", "whoami"));
+            if (proc == null) return false;
+            proc.StandardOutput.ReadToEnd();
+            proc.StandardError.ReadToEnd();
+            proc.WaitForExit(15000);
+            return proc.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
         }
     }
 

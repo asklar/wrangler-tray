@@ -131,8 +131,12 @@
             <!-- Account Selection -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="🏢 Account"/>
             <ComboBox ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedAccount}"
-                      DisplayMemberPath="Name"
                       Background="#313244" Foreground="#cdd6f4" BorderBrush="#45475a" Padding="6,4">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Name}" Foreground="#cdd6f4"/>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
                 <ComboBox.ItemContainerStyle>
                     <Style TargetType="ComboBoxItem">
                         <Setter Property="Background" Value="#313244"/>
