@@ -31,4 +31,7 @@ public class AppSettings
 
     [JsonPropertyName("selectedAccountId")]
     public string? SelectedAccountId { get; set; }
+
+    [JsonPropertyName("lastSelectedProject")]
+    public string? LastSelectedProject { get; set; }
 }

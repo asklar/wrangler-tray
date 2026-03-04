@@ -20,7 +20,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <DockPanel Grid.Row="0" Margin="0,0,0,10">
+        <DockPanel Grid.Row="0" Margin="0,0,0,4">
             <TextBlock Text="☁️ Deployments" FontSize="18" FontWeight="SemiBold" 
                        Foreground="#cdd6f4" DockPanel.Dock="Left"/>
             <Button Content="⟳" Command="{Binding RefreshCommand}" 
@@ -29,6 +29,61 @@
                     FontSize="18" Cursor="Hand" Padding="6,2"
                     ToolTip="Refresh now"/>
         </DockPanel>
+
+        <!-- Project tabs -->
+        <ListBox Grid.Row="0" Margin="0,36,0,0"
+                 ItemsSource="{Binding ProjectNames}"
+                 SelectedItem="{Binding SelectedProject}"
+                 Background="Transparent" BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Padding" Value="10,4"/>
+                    <Setter Property="Margin" Value="0,0,4,0"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Foreground" Value="#6c7086"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border x:Name="Bd" CornerRadius="4" 
+                                        Padding="{TemplateBinding Padding}"
+                                        Margin="{TemplateBinding Margin}"
+                                        Background="Transparent"
+                                        BorderThickness="0,0,0,2"
+                                        BorderBrush="Transparent">
+                                    <ContentPresenter/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#313244"/>
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="#89b4fa"/>
+                                        <Setter Property="Foreground" Value="#cdd6f4"/>
+                                    </Trigger>
+                                    <MultiTrigger>
+                                        <MultiTrigger.Conditions>
+                                            <Condition Property="IsMouseOver" Value="True"/>
+                                            <Condition Property="IsSelected" Value="False"/>
+                                        </MultiTrigger.Conditions>
+                                        <Setter TargetName="Bd" Property="Background" Value="#25253a"/>
+                                    </MultiTrigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" FontSize="12"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
 
         <!-- Status messages (mutually exclusive, all in Row 1) -->
         <StackPanel Grid.Row="1" VerticalAlignment="Top" Margin="0,20"
@@ -86,13 +141,16 @@
         <ListBox Grid.Row="1" ItemsSource="{Binding Deployments}"
                  Background="Transparent" BorderThickness="0"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                 Margin="0,5">
+                 Margin="0,5"
+                 x:Name="DeploymentList"
+                 MouseDoubleClick="DeploymentList_MouseDoubleClick">
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem">
                     <Setter Property="Padding" Value="8,6"/>
                     <Setter Property="Margin" Value="0,2"/>
                     <Setter Property="Background" Value="#313244"/>
                     <Setter Property="Foreground" Value="#cdd6f4"/>
+                    <Setter Property="Cursor" Value="Hand"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ListBoxItem">

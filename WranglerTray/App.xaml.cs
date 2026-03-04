@@ -114,7 +114,7 @@ public partial class App : Application
     {
         if (_deploymentWindow == null || !_deploymentWindow.IsLoaded)
         {
-            var vm = new DeploymentListViewModel(_monitorService, _authService);
+            var vm = new DeploymentListViewModel(_monitorService, _authService, _settingsService, _settings);
             vm.OpenSettingsRequested += (_, _) => ShowSettings();
             _deploymentWindow = new DeploymentListWindow(vm);
         }
