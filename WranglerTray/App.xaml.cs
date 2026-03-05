@@ -21,36 +21,80 @@ public partial class App : Application
     private DeploymentListWindow? _deploymentWindow;
     private SettingsWindow? _settingsWindow;
 
+    private static readonly string LogPath = System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "WranglerTray", "error.log");
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // Single-instance check
-        var mutex = new System.Threading.Mutex(true, "WranglerTray_SingleInstance", out bool isNew);
-        if (!isNew)
+        // Global exception handlers
+        DispatcherUnhandledException += (_, args) =>
         {
-            Shutdown();
-            return;
+            LogError("DispatcherUnhandled", args.Exception);
+            args.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+                LogError("AppDomainUnhandled", ex);
+        };
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            LogError("UnobservedTask", args.Exception);
+            args.SetObserved();
+        };
+
+        try
+        {
+            // Single-instance check
+            var mutex = new System.Threading.Mutex(true, "WranglerTray_SingleInstance", out bool isNew);
+            if (!isNew)
+            {
+                Shutdown();
+                return;
+            }
+            GC.KeepAlive(mutex);
+
+            // Initialize services
+            _settingsService = new SettingsService();
+            _settings = _settingsService.Load();
+            _authService = new CloudflareAuthService();
+            _apiService = new CloudflareApiService(_authService);
+            _notificationService = new NotificationService(_settings);
+            _monitorService = new DeploymentMonitorService(_apiService, _authService, _notificationService, _settings);
+
+            // Try restore auth
+            _authService.TryRestoreAuth(_settings);
+
+            // Set up tray icon
+            SetupTrayIcon();
+
+            // Start monitoring if authenticated
+            if (_authService.IsAuthenticated)
+                _monitorService.Start();
         }
-        GC.KeepAlive(mutex);
+        catch (Exception ex)
+        {
+            LogError("Startup", ex);
+            System.Windows.MessageBox.Show(
+                $"WranglerTray failed to start:\n\n{ex.Message}\n\nSee {LogPath} for details.",
+                "WranglerTray Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown();
+        }
+    }
 
-        // Initialize services
-        _settingsService = new SettingsService();
-        _settings = _settingsService.Load();
-        _authService = new CloudflareAuthService();
-        _apiService = new CloudflareApiService(_authService);
-        _notificationService = new NotificationService(_settings);
-        _monitorService = new DeploymentMonitorService(_apiService, _authService, _notificationService, _settings);
-
-        // Try restore auth
-        _authService.TryRestoreAuth(_settings);
-
-        // Set up tray icon
-        SetupTrayIcon();
-
-        // Start monitoring if authenticated
-        if (_authService.IsAuthenticated)
-            _monitorService.Start();
+    private static void LogError(string context, Exception ex)
+    {
+        try
+        {
+            var dir = System.IO.Path.GetDirectoryName(LogPath)!;
+            System.IO.Directory.CreateDirectory(dir);
+            var entry = $"[{DateTime.UtcNow:o}] [{context}] {ex}\n\n";
+            System.IO.File.AppendAllText(LogPath, entry);
+        }
+        catch { }
     }
 
     private void SetupTrayIcon()

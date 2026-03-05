@@ -28,7 +28,7 @@ A Windows system tray app that monitors your Cloudflare Workers and Pages deploy
 2. Extract the zip to a folder (e.g. `C:\Program Files\WranglerTray`)
 3. Run `WranglerTray.exe`
 
-The release is a native AOT-compiled binary — no .NET runtime installation required.
+The release is a self-contained single-file binary — no .NET runtime installation required.
 
 ## Getting Started
 
