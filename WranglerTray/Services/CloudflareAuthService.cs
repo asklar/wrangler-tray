@@ -39,6 +39,18 @@ public class CloudflareAuthService
                 _cachedToken = ReadCredentialManager();
                 break;
         }
+
+        // Auto-detect existing wrangler login if no saved auth
+        if (_cachedToken == null && _authMode == AuthMode.None)
+        {
+            _cachedToken = ReadWranglerToken();
+            if (_cachedToken != null)
+            {
+                _authMode = AuthMode.WranglerLogin;
+                settings.AuthMode = AuthMode.WranglerLogin;
+            }
+        }
+
         if (_cachedToken == null)
             _authMode = AuthMode.None;
     }
@@ -151,22 +163,49 @@ public class CloudflareAuthService
 
     /// <summary>
     /// Launch `wrangler login` and wait for user to complete the flow.
+    /// Polls for the config file to appear rather than waiting for the
+    /// process to exit, since cmd.exe /c can hang after wrangler finishes.
     /// </summary>
     public async Task<bool> LoginWithWranglerAsync()
     {
         try
         {
-            var psi = new ProcessStartInfo("cmd.exe", "/c wrangler login")
-            {
-                UseShellExecute = true,
-                CreateNoWindow = false
-            };
+            var psi = CmdPsi("wrangler", "login", redirect: false);
+            psi.UseShellExecute = true;
+            psi.CreateNoWindow = false;
             using var proc = Process.Start(psi);
             if (proc == null) return false;
 
-            await proc.WaitForExitAsync();
+            // Record the config timestamp before login so we can detect changes
+            var configExistedBefore = File.Exists(WranglerConfigPath);
+            var lastWrite = configExistedBefore
+                ? File.GetLastWriteTimeUtc(WranglerConfigPath)
+                : DateTime.MinValue;
 
-            if (proc.ExitCode != 0) return false;
+            // Poll for the config file to be written/updated (up to 5 minutes)
+            var timeout = TimeSpan.FromMinutes(5);
+            var start = DateTime.UtcNow;
+            while (DateTime.UtcNow - start < timeout)
+            {
+                await Task.Delay(1000);
+
+                if (proc.HasExited)
+                    break;
+
+                if (File.Exists(WranglerConfigPath) &&
+                    File.GetLastWriteTimeUtc(WranglerConfigPath) > lastWrite)
+                    break;
+            }
+
+            // Give wrangler a moment to finish writing, then kill if still running
+            if (!proc.HasExited)
+            {
+                await Task.Delay(2000);
+                if (!proc.HasExited)
+                {
+                    try { proc.Kill(entireProcessTree: true); } catch { }
+                }
+            }
 
             var token = ReadWranglerToken();
             if (token == null) return false;
