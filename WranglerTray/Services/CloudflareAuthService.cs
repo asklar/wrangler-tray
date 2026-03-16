@@ -15,9 +15,17 @@ public class CloudflareAuthService
     private AuthMode _authMode = AuthMode.None;
 
     private static readonly string CredentialTarget = "WranglerTray_ApiToken";
-    private static readonly string WranglerConfigPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".wrangler", "config", "default.toml");
+    private static readonly string[] WranglerConfigPaths =
+    [
+        // Modern wrangler (v3+): %APPDATA%\xdg.config\.wrangler\config\default.toml
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "xdg.config", ".wrangler", "config", "default.toml"),
+        // Legacy: ~/.wrangler/config/default.toml
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".wrangler", "config", "default.toml"),
+    ];
 
     public AuthMode AuthMode => _authMode;
     public bool IsAuthenticated => _authMode != AuthMode.None && _cachedToken != null;
@@ -176,13 +184,12 @@ public class CloudflareAuthService
             using var proc = Process.Start(psi);
             if (proc == null) return false;
 
-            // Record the config timestamp before login so we can detect changes
-            var configExistedBefore = File.Exists(WranglerConfigPath);
-            var lastWrite = configExistedBefore
-                ? File.GetLastWriteTimeUtc(WranglerConfigPath)
-                : DateTime.MinValue;
+            // Record the config timestamps before login so we can detect changes
+            var lastWrites = WranglerConfigPaths.ToDictionary(
+                p => p,
+                p => File.Exists(p) ? File.GetLastWriteTimeUtc(p) : DateTime.MinValue);
 
-            // Poll for the config file to be written/updated (up to 5 minutes)
+            // Poll for any config file to be written/updated (up to 5 minutes)
             var timeout = TimeSpan.FromMinutes(5);
             var start = DateTime.UtcNow;
             while (DateTime.UtcNow - start < timeout)
@@ -192,8 +199,8 @@ public class CloudflareAuthService
                 if (proc.HasExited)
                     break;
 
-                if (File.Exists(WranglerConfigPath) &&
-                    File.GetLastWriteTimeUtc(WranglerConfigPath) > lastWrite)
+                if (lastWrites.Any(kv => File.Exists(kv.Key) &&
+                    File.GetLastWriteTimeUtc(kv.Key) > kv.Value))
                     break;
             }
 
@@ -265,13 +272,19 @@ public class CloudflareAuthService
 
     #region Wrangler Token Reading
 
+    private static string? FindWranglerConfigPath()
+    {
+        return WranglerConfigPaths.FirstOrDefault(File.Exists);
+    }
+
     private static string? ReadWranglerToken()
     {
         try
         {
-            if (!File.Exists(WranglerConfigPath)) return null;
+            var configPath = FindWranglerConfigPath();
+            if (configPath == null) return null;
 
-            var toml = File.ReadAllText(WranglerConfigPath);
+            var toml = File.ReadAllText(configPath);
             var model = Toml.ToModel(toml);
 
             // Check expiration
@@ -288,7 +301,7 @@ public class CloudflareAuthService
                             return null;
 
                         // Re-read the config after refresh
-                        toml = File.ReadAllText(WranglerConfigPath);
+                        toml = File.ReadAllText(configPath);
                         model = Toml.ToModel(toml);
                     }
                 }
