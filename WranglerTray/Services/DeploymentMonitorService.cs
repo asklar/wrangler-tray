@@ -55,6 +55,12 @@ public class DeploymentMonitorService : IDisposable
             _timer.Interval = seconds * 1000;
     }
 
+    /// <summary>
+    /// Re-emit the current deployments so open views can re-apply their filters
+    /// (e.g. after the "hide skipped" setting changes) without waiting for a poll.
+    /// </summary>
+    public void RefreshView() => DeploymentsUpdated?.Invoke(this, CurrentDeployments);
+
     public async Task PollAsync()
     {
         if (_isPolling || !_authService.IsAuthenticated) return;
@@ -122,7 +128,7 @@ public class DeploymentMonitorService : IDisposable
                             Id = $"pages-{project.Name}-{d.Id}",
                             ProjectName = project.Name,
                             Type = DeploymentType.Pages,
-                            Status = MapPagesStatus(d.LatestStage?.Status),
+                            Status = d.IsSkipped ? DeploymentStatus.Skipped : MapPagesStatus(d.LatestStage?.Status),
                             CreatedOn = d.CreatedOn,
                             ModifiedOn = d.ModifiedOn,
                             CommitHash = d.DeploymentTrigger?.Metadata?.CommitHash,
@@ -144,7 +150,7 @@ public class DeploymentMonitorService : IDisposable
 
             CurrentDeployments = allDeployments
                 .OrderByDescending(d => d.CreatedOn)
-                .Take(30)
+                .Take(50)
                 .ToList();
 
             LastChecked = DateTime.UtcNow;
@@ -165,6 +171,9 @@ public class DeploymentMonitorService : IDisposable
     {
         foreach (var d in fresh)
         {
+            // Skipped builds are noise — never notify about them.
+            if (d.Status == DeploymentStatus.Skipped) continue;
+
             if (_knownDeployments.TryGetValue(d.Id, out var known))
             {
                 if (known.Status != d.Status)

@@ -48,14 +48,19 @@ public class CloudflareAuthService
                 break;
         }
 
-        // Auto-detect existing wrangler login if no saved auth
-        if (_cachedToken == null && _authMode == AuthMode.None)
+        // Auto-detect an existing wrangler login if no saved auth. Only trust it
+        // when a refresh token is present, so the access token can be renewed later.
+        if (_cachedToken == null && _authMode != AuthMode.ApiToken)
         {
-            _cachedToken = ReadWranglerToken();
-            if (_cachedToken != null)
+            var (_, _, hasRefresh) = ReadWranglerConfigRaw();
+            if (hasRefresh)
             {
-                _authMode = AuthMode.WranglerLogin;
-                settings.AuthMode = AuthMode.WranglerLogin;
+                _cachedToken = ReadWranglerToken();
+                if (_cachedToken != null)
+                {
+                    _authMode = AuthMode.WranglerLogin;
+                    settings.AuthMode = AuthMode.WranglerLogin;
+                }
             }
         }
 
@@ -260,6 +265,40 @@ public class CloudflareAuthService
         }
     }
 
+    /// <summary>
+    /// Force a wrangler token refresh (used when an API call returns 401).
+    /// Runs `wrangler whoami`, which makes wrangler renew its OAuth token using
+    /// the stored refresh token, then reloads the token from disk. Returns true
+    /// only if a currently-valid token is now cached.
+    /// </summary>
+    public async Task<bool> ForceRefreshTokenAsync()
+    {
+        if (_authMode != AuthMode.WranglerLogin) return false;
+
+        await Task.Run(() => TryRefreshWranglerToken());
+
+        var (fresh, expiry, _) = ReadWranglerConfigRaw();
+        if (fresh != null && (expiry == null || expiry > DateTime.UtcNow))
+        {
+            _cachedToken = fresh;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Mark the session as unauthenticated (e.g. a 401 that couldn't be refreshed)
+    /// without deleting stored credentials, and notify listeners so the UI can
+    /// prompt the user to log in again.
+    /// </summary>
+    public void MarkAuthLost()
+    {
+        if (_authMode == AuthMode.None && _cachedToken == null) return;
+        _cachedToken = null;
+        _authMode = AuthMode.None;
+        AuthStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public void Logout()
     {
         if (_authMode == AuthMode.ApiToken)
@@ -277,45 +316,59 @@ public class CloudflareAuthService
         return WranglerConfigPaths.FirstOrDefault(File.Exists);
     }
 
-    private static string? ReadWranglerToken()
+    /// <summary>
+    /// Read the wrangler OAuth config from disk without side effects.
+    /// </summary>
+    private static (string? Token, DateTime? Expiry, bool HasRefreshToken) ReadWranglerConfigRaw()
     {
         try
         {
             var configPath = FindWranglerConfigPath();
-            if (configPath == null) return null;
+            if (configPath == null) return (null, null, false);
 
-            var toml = File.ReadAllText(configPath);
-            var model = Toml.ToModel(toml);
+            var model = Toml.ToModel(File.ReadAllText(configPath));
 
-            // Check expiration
-            if (model.TryGetValue("expiration_time", out var expiryVal))
-            {
-                if (DateTime.TryParse(expiryVal?.ToString(), null,
-                        System.Globalization.DateTimeStyles.RoundtripKind, out var expiry))
-                {
-                    if (expiry < DateTime.UtcNow)
-                    {
-                        // Token expired — try to refresh by running a trivial wrangler command
-                        // which forces wrangler to refresh its token internally
-                        if (!TryRefreshWranglerToken())
-                            return null;
+            string? token = model.TryGetValue("oauth_token", out var t) ? t?.ToString() : null;
 
-                        // Re-read the config after refresh
-                        toml = File.ReadAllText(configPath);
-                        model = Toml.ToModel(toml);
-                    }
-                }
-            }
+            DateTime? expiry = null;
+            if (model.TryGetValue("expiration_time", out var e) &&
+                DateTime.TryParse(e?.ToString(), null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out var exp))
+                expiry = exp;
 
-            if (model.TryGetValue("oauth_token", out var token))
-                return token?.ToString();
+            bool hasRefresh = model.TryGetValue("refresh_token", out var r) &&
+                !string.IsNullOrWhiteSpace(r?.ToString());
 
-            return null;
+            return (token, expiry, hasRefresh);
         }
         catch
         {
-            return null;
+            return (null, null, false);
         }
+    }
+
+    /// <summary>
+    /// Read the wrangler OAuth token, refreshing via the wrangler CLI if it is
+    /// expired (or about to expire). If refresh fails, the current (possibly
+    /// expired) token is still returned so the caller stays "logged in" and can
+    /// recover via an on-demand refresh when an API call returns 401.
+    /// </summary>
+    private static string? ReadWranglerToken()
+    {
+        var (token, expiry, _) = ReadWranglerConfigRaw();
+        if (token == null) return null;
+
+        // Refresh proactively if within a minute of expiry.
+        if (expiry.HasValue && expiry.Value <= DateTime.UtcNow.AddMinutes(1))
+        {
+            if (TryRefreshWranglerToken())
+            {
+                var (fresh, _, _) = ReadWranglerConfigRaw();
+                if (fresh != null) return fresh;
+            }
+        }
+
+        return token;
     }
 
     /// <summary>
@@ -330,7 +383,7 @@ public class CloudflareAuthService
             if (proc == null) return false;
             proc.StandardOutput.ReadToEnd();
             proc.StandardError.ReadToEnd();
-            proc.WaitForExit(15000);
+            proc.WaitForExit(30000);
             return proc.ExitCode == 0;
         }
         catch

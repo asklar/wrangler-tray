@@ -170,6 +170,9 @@ public partial class App : Application
 
     private void ShowSettings()
     {
+        // Navigating to Settings — hide the top-most flyout so it doesn't cover it.
+        _deploymentWindow?.Hide();
+
         if (_settingsWindow == null || !_settingsWindow.IsLoaded)
         {
             var vm = new SettingsViewModel(_authService, _apiService, _monitorService, _settingsService, _settings);
@@ -177,7 +180,13 @@ public partial class App : Application
         }
 
         _settingsWindow.Show();
+        if (_settingsWindow.WindowState == WindowState.Minimized)
+            _settingsWindow.WindowState = WindowState.Normal;
         _settingsWindow.Activate();
+        // Force the window above the top-most flyout, then drop back to normal.
+        _settingsWindow.Topmost = true;
+        _settingsWindow.Topmost = false;
+        _settingsWindow.Focus();
     }
 
     private static void PositionNearTray(Window window)

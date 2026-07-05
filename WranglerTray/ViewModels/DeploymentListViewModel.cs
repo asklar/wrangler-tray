@@ -86,8 +86,11 @@ public partial class DeploymentListViewModel : ObservableObject
     {
         _allDeployments = deployments;
 
-        // Build project list
-        var projects = deployments
+        var visible = VisibleDeployments();
+
+        // Build project list from the visible (post-skip-filter) set so that
+        // projects with only skipped deployments don't show empty tabs.
+        var projects = visible
             .Select(d => d.ProjectName)
             .Distinct()
             .OrderBy(n => n)
@@ -112,6 +115,11 @@ public partial class DeploymentListViewModel : ObservableObject
         ApplyFilter();
     }
 
+    private IEnumerable<Deployment> VisibleDeployments()
+        => _settings.HideSkippedDeployments
+            ? _allDeployments.Where(d => d.Status != DeploymentStatus.Skipped)
+            : _allDeployments;
+
     partial void OnSelectedProjectChanged(string value)
     {
         _settings.LastSelectedProject = value;
@@ -121,9 +129,10 @@ public partial class DeploymentListViewModel : ObservableObject
 
     private void ApplyFilter()
     {
+        var visible = VisibleDeployments();
         var filtered = SelectedProject == "All"
-            ? _allDeployments
-            : _allDeployments.Where(d => d.ProjectName == SelectedProject).ToList();
+            ? visible.ToList()
+            : visible.Where(d => d.ProjectName == SelectedProject).ToList();
 
         Deployments = new ObservableCollection<Deployment>(filtered);
     }

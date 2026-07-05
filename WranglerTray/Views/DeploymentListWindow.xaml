@@ -246,6 +246,16 @@
             <ListBox.ItemTemplate>
                 <DataTemplate DataType="{x:Type models:Deployment}">
                     <Grid>
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Opacity" Value="1"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="Skipped">
+                                        <Setter Property="Opacity" Value="0.5"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -275,6 +285,9 @@
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Status}" Value="Queued">
                                             <Setter Property="Fill" Value="#f9e2af"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Status}" Value="Skipped">
+                                            <Setter Property="Fill" Value="#585b70"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -316,6 +329,19 @@
                                     </TextBlock.Style>
                                 </TextBlock>
                             </Border>
+                            <TextBlock Text="skipped" FontSize="10" Foreground="#6c7086"
+                                       VerticalAlignment="Center" Margin="6,0,0,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Status}" Value="Skipped">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
 
                         <!-- Time ago -->
@@ -323,13 +349,28 @@
                                    Text="{Binding TimeAgo}" Foreground="#6c7086" 
                                    FontSize="11" VerticalAlignment="Center"/>
 
-                        <!-- Commit info -->
+                        <!-- Commit info (subject line + full-message tooltip) -->
                         <TextBlock Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="1"
                                    Foreground="#a6adc8" FontSize="11" Margin="0,2,0,0"
-                                   TextTrimming="CharacterEllipsis">
+                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                   ToolTipService.ShowDuration="20000" ToolTipService.InitialShowDelay="400">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CommitMessage}" Value="{x:Null}">
+                                            <Setter Property="ToolTipService.IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <TextBlock.ToolTip>
+                                <ToolTip MaxWidth="420" Background="#313244" BorderBrush="#45475a" Padding="10,6">
+                                    <TextBlock Text="{Binding CommitMessage}" TextWrapping="Wrap" Foreground="#cdd6f4"/>
+                                </ToolTip>
+                            </TextBlock.ToolTip>
                             <Run Text="{Binding ShortCommitHash, Mode=OneWay}"/>
                             <Run Text=" "/>
-                            <Run Text="{Binding CommitMessage, Mode=OneWay}"/>
+                            <Run Text="{Binding CommitSubject, Mode=OneWay}"/>
                         </TextBlock>
                     </Grid>
                 </DataTemplate>

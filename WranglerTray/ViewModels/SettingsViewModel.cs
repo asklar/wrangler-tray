@@ -42,6 +42,9 @@ public partial class SettingsViewModel : ObservableObject
     private bool _notifyOnNewDeployment;
 
     [ObservableProperty]
+    private bool _hideSkippedDeployments;
+
+    [ObservableProperty]
     private bool _isWranglerInstalled;
 
     [ObservableProperty]
@@ -52,6 +55,9 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isInstallingWrangler;
+
+    [ObservableProperty]
+    private bool _isCheckingEnvironment = true;
 
     [ObservableProperty]
     private string? _installStatusMessage;
@@ -89,6 +95,7 @@ public partial class SettingsViewModel : ObservableObject
         NotifyOnSuccess = settings.NotifyOnSuccess;
         NotifyOnFailure = settings.NotifyOnFailure;
         NotifyOnNewDeployment = settings.NotifyOnNewDeployment;
+        HideSkippedDeployments = settings.HideSkippedDeployments;
 
         // Check wrangler environment on background thread
         _ = Task.Run(() =>
@@ -99,6 +106,7 @@ public partial class SettingsViewModel : ObservableObject
                 IsWranglerInstalled = env.IsWranglerInstalled;
                 IsNpmInstalled = env.IsNpmInstalled;
                 WranglerVersion = env.WranglerVersion;
+                IsCheckingEnvironment = false;
             });
         });
 
@@ -111,12 +119,45 @@ public partial class SettingsViewModel : ObservableObject
                 AuthStatusText = authService.IsAuthenticated
                     ? $"Logged in ({authService.AuthMode})"
                     : "Not logged in";
+                if (authService.IsAuthenticated)
+                    _ = InitializeAuthenticatedAsync();
+                else
+                {
+                    Accounts.Clear();
+                    SelectedAccount = null;
+                }
             });
         };
 
-        // Load accounts if already authenticated
+        // Load identity + accounts if already authenticated
         if (authService.IsAuthenticated)
-            _ = LoadAccountsAsync();
+            _ = InitializeAuthenticatedAsync();
+    }
+
+    /// <summary>
+    /// Populate the logged-in identity and account list once authenticated.
+    /// </summary>
+    private async Task InitializeAuthenticatedAsync()
+    {
+        await RefreshAuthStatusAsync();
+        await LoadAccountsAsync();
+    }
+
+    /// <summary>
+    /// Update the status text to show who we're logged in as.
+    /// </summary>
+    private async Task RefreshAuthStatusAsync()
+    {
+        if (!_authService.IsAuthenticated)
+        {
+            AuthStatusText = "Not logged in";
+            return;
+        }
+
+        var email = await _apiService.GetUserEmailAsync();
+        AuthStatusText = !string.IsNullOrEmpty(email)
+            ? $"Logged in as {email}"
+            : $"Logged in ({_authService.AuthMode})";
     }
 
     [RelayCommand]
@@ -159,7 +200,7 @@ public partial class SettingsViewModel : ObservableObject
                 _settings.AuthMode = AuthMode.WranglerLogin;
                 _settingsService.Save(_settings);
                 _monitorService.Start();
-                await LoadAccountsAsync();
+                await InitializeAuthenticatedAsync();
             }
             else
             {
@@ -189,10 +230,9 @@ public partial class SettingsViewModel : ObservableObject
         {
             _settings.AuthMode = AuthMode.ApiToken;
             _settingsService.Save(_settings);
-            AuthStatusText = "✅ API token verified";
             ApiTokenInput = string.Empty;
             _monitorService.Start();
-            await LoadAccountsAsync();
+            await InitializeAuthenticatedAsync();
         }
         else
         {
@@ -258,6 +298,13 @@ public partial class SettingsViewModel : ObservableObject
     {
         _settings.NotifyOnNewDeployment = value;
         _settingsService.Save(_settings);
+    }
+
+    partial void OnHideSkippedDeploymentsChanged(bool value)
+    {
+        _settings.HideSkippedDeployments = value;
+        _settingsService.Save(_settings);
+        _monitorService.RefreshView();
     }
 
     partial void OnStartWithWindowsChanged(bool value)

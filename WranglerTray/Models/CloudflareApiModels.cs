@@ -52,6 +52,13 @@ public class CfAccount
     public string Name { get; set; } = string.Empty;
 }
 
+// Current user (identity)
+public class CfUser
+{
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+}
+
 // Workers
 public class CfWorkerScript
 {
@@ -127,6 +134,9 @@ public class CfPagesDeployment
 
     [JsonPropertyName("latest_stage")]
     public CfPagesStage? LatestStage { get; set; }
+
+    [JsonPropertyName("is_skipped")]
+    public bool IsSkipped { get; set; }
 
     [JsonPropertyName("deployment_trigger")]
     public CfPagesDeploymentTrigger? DeploymentTrigger { get; set; }

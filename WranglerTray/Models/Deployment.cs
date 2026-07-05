@@ -13,7 +13,8 @@ public enum DeploymentStatus
     Active,
     Success,
     Failure,
-    Canceled
+    Canceled,
+    Skipped
 }
 
 public class Deployment
@@ -31,6 +32,17 @@ public class Deployment
     public string? Environment { get; set; }
 
     public string ShortCommitHash => CommitHash?.Length > 7 ? CommitHash[..7] : CommitHash ?? "";
+
+    /// <summary>First line (subject) of the commit message, for compact list display.</summary>
+    public string? CommitSubject
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(CommitMessage)) return CommitMessage;
+            var idx = CommitMessage.IndexOfAny(new[] { '\r', '\n' });
+            return idx >= 0 ? CommitMessage[..idx] : CommitMessage;
+        }
+    }
 
     public string TimeAgo
     {

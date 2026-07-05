@@ -29,6 +29,73 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
+
+        <!-- Dark-themed ComboBox item -->
+        <Style x:Key="DarkComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#cdd6f4"/>
+            <Setter Property="Background" Value="#313244"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#45475a"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Dark-themed ComboBox (WPF's default chrome is light and hides our text) -->
+        <Style x:Key="DarkComboBox" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="#cdd6f4"/>
+            <Setter Property="Background" Value="#313244"/>
+            <Setter Property="BorderBrush" Value="#45475a"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboBoxItem}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Focusable="False" ClickMode="Press"
+                                          Background="{TemplateBinding Background}"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="#45475a" BorderThickness="1" CornerRadius="4"/>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="10,0,28,0"
+                                              VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                            <Path IsHitTestVisible="False" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  Margin="0,0,12,0" Data="M 0 0 L 4 4 L 8 0 Z" Fill="#cdd6f4"/>
+                            <Popup Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                <Border Background="#313244" BorderBrush="#45475a" BorderThickness="1" CornerRadius="4"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <ScrollViewer>
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -42,6 +109,9 @@
             <!-- Wrangler Environment -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="🔧 Wrangler CLI"/>
 
+            <TextBlock Foreground="#a6adc8" FontSize="12" Text="⏳ Checking for wrangler…"
+                       Visibility="{Binding IsCheckingEnvironment, Converter={StaticResource BoolToVis}}"/>
+
             <StackPanel Visibility="{Binding IsWranglerInstalled, Converter={StaticResource BoolToVis}}">
                 <TextBlock Foreground="#a6e3a1" FontSize="12">
                     <Run Text="✅ Wrangler installed:"/>
@@ -49,15 +119,19 @@
                 </TextBlock>
             </StackPanel>
 
-            <!-- Wrangler not installed -->
+            <!-- Wrangler not installed (only after the check completes) -->
             <StackPanel>
                 <StackPanel.Style>
                     <Style TargetType="StackPanel">
                         <Setter Property="Visibility" Value="Collapsed"/>
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsWranglerInstalled}" Value="False">
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsCheckingEnvironment}" Value="False"/>
+                                    <Condition Binding="{Binding IsWranglerInstalled}" Value="False"/>
+                                </MultiDataTrigger.Conditions>
                                 <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
+                            </MultiDataTrigger>
                         </Style.Triggers>
                     </Style>
                 </StackPanel.Style>
@@ -97,58 +171,60 @@
                 </StackPanel>
             </StackPanel>
 
-            <!-- Authentication -->
-            <TextBlock Style="{StaticResource SectionHeader}" Text="🔑 Authentication"/>
-
-            <!-- Wrangler Login option -->
-            <StackPanel Margin="0,0,0,8">
-                <Button Content="🌐 Login with Wrangler (opens browser)" 
-                        Command="{Binding LoginWithWranglerCommand}"
-                        Style="{StaticResource ActionButton}"
-                        IsEnabled="{Binding IsWranglerInstalled}"
-                        HorizontalAlignment="Left"/>
-            </StackPanel>
-
-            <!-- API Token option -->
-            <TextBlock Style="{StaticResource Label}" Text="— or paste an API token —"/>
-            <DockPanel Margin="0,0,0,4">
-                <Button Content="Save" Command="{Binding SaveApiTokenCommand}" 
-                        DockPanel.Dock="Right" Style="{StaticResource ActionButton}" Margin="8,0,0,0"/>
-                <TextBox Text="{Binding ApiTokenInput, UpdateSourceTrigger=PropertyChanged}"
-                         Background="#313244" Foreground="#cdd6f4" BorderBrush="#45475a"
-                         Padding="6,4" FontFamily="Consolas" FontSize="12"/>
-            </DockPanel>
-            <TextBlock Foreground="#6c7086" FontSize="10" TextWrapping="Wrap"
-                       Text="Create a token at dash.cloudflare.com/profile/api-tokens with 'Account:Workers Scripts:Read' and 'Account:Cloudflare Pages:Read' permissions."/>
-
-            <!-- Logout -->
-            <Button Content="Logout" Command="{Binding LogoutCommand}" 
-                    Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVis}}"
-                    HorizontalAlignment="Left" Margin="0,12,0,0"
-                    Background="#45475a" Foreground="#f38ba8" Padding="16,6"
-                    BorderThickness="0" Cursor="Hand"/>
-
-            <!-- Account Selection -->
-            <TextBlock Style="{StaticResource SectionHeader}" Text="🏢 Account"/>
-            <ComboBox ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedAccount}"
-                      Background="#313244" Foreground="#cdd6f4" BorderBrush="#45475a" Padding="6,4">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Name}" Foreground="#cdd6f4"/>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-                <ComboBox.ItemContainerStyle>
-                    <Style TargetType="ComboBoxItem">
-                        <Setter Property="Background" Value="#313244"/>
-                        <Setter Property="Foreground" Value="#cdd6f4"/>
+            <!-- Login options: shown only when NOT authenticated -->
+            <StackPanel>
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed"/>
                         <Style.Triggers>
-                            <Trigger Property="IsHighlighted" Value="True">
-                                <Setter Property="Background" Value="#45475a"/>
-                            </Trigger>
+                            <DataTrigger Binding="{Binding IsAuthenticated}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
-                </ComboBox.ItemContainerStyle>
-            </ComboBox>
+                </StackPanel.Style>
+
+                <TextBlock Style="{StaticResource SectionHeader}" Text="🔑 Authentication"/>
+
+                <!-- Wrangler Login option -->
+                <StackPanel Margin="0,0,0,8">
+                    <Button Content="🌐 Login with Wrangler (opens browser)" 
+                            Command="{Binding LoginWithWranglerCommand}"
+                            Style="{StaticResource ActionButton}"
+                            IsEnabled="{Binding IsWranglerInstalled}"
+                            HorizontalAlignment="Left"/>
+                </StackPanel>
+
+                <!-- API Token option -->
+                <TextBlock Style="{StaticResource Label}" Text="— or paste an API token —"/>
+                <DockPanel Margin="0,0,0,4">
+                    <Button Content="Save" Command="{Binding SaveApiTokenCommand}" 
+                            DockPanel.Dock="Right" Style="{StaticResource ActionButton}" Margin="8,0,0,0"/>
+                    <TextBox Text="{Binding ApiTokenInput, UpdateSourceTrigger=PropertyChanged}"
+                             Background="#313244" Foreground="#cdd6f4" BorderBrush="#45475a"
+                             Padding="6,4" FontFamily="Consolas" FontSize="12"/>
+                </DockPanel>
+                <TextBlock Foreground="#6c7086" FontSize="10" TextWrapping="Wrap"
+                           Text="Create a token at dash.cloudflare.com/profile/api-tokens with 'Account:Workers Scripts:Read' and 'Account:Cloudflare Pages:Read' permissions."/>
+            </StackPanel>
+
+            <!-- Account + session: shown only when logged in -->
+            <StackPanel Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVis}}">
+                <TextBlock Style="{StaticResource SectionHeader}" Text="🏢 Account"/>
+                <ComboBox Style="{StaticResource DarkComboBox}"
+                          ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedAccount}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" Foreground="#cdd6f4"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <Button Content="Logout" Command="{Binding LogoutCommand}"
+                        HorizontalAlignment="Left" Margin="0,12,0,0"
+                        Background="#45475a" Foreground="#f38ba8" Padding="16,6"
+                        BorderThickness="0" Cursor="Hand"/>
+            </StackPanel>
 
             <!-- Polling -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="⏱️ Polling"/>
@@ -169,6 +245,12 @@
             <CheckBox Content="Notify on failed deployments" IsChecked="{Binding NotifyOnFailure}"
                       Foreground="#cdd6f4" Margin="0,4"/>
             <CheckBox Content="Notify on new deployments" IsChecked="{Binding NotifyOnNewDeployment}"
+                      Foreground="#cdd6f4" Margin="0,4"/>
+
+            <!-- Deployments -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="🗂️ Deployments"/>
+            <CheckBox Content="Hide skipped deployments (didn't match build watch paths)"
+                      IsChecked="{Binding HideSkippedDeployments}"
                       Foreground="#cdd6f4" Margin="0,4"/>
 
             <!-- Startup -->

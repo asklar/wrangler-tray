@@ -34,4 +34,7 @@ public class AppSettings
 
     [JsonPropertyName("lastSelectedProject")]
     public string? LastSelectedProject { get; set; }
+
+    [JsonPropertyName("hideSkippedDeployments")]
+    public bool HideSkippedDeployments { get; set; } = true;
 }
