@@ -21,12 +21,15 @@ jobs:
 
       - name: Publish
         run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          Write-Host "Building version $version"
           dotnet publish WranglerTray/WranglerTray.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
             /p:PublishSingleFile=true `
             /p:IncludeNativeLibrariesForSelfExtract=true `
+            /p:Version=$version `
             -o publish
 
       - name: Create zip
